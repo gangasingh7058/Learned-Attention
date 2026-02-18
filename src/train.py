@@ -8,6 +8,7 @@ from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
 from dataset import Shakes_Pear_Dataset
+import sentencepiece as spm
 
 def train():
     torch.manual_seed(42)
@@ -16,7 +17,7 @@ def train():
     BATCH_SIZE = 24
     EPOCHS = 20
     LR = 3e-4
-    SAVE_DIR = "../checkpoints"
+    SAVE_DIR = "../checkpoints_sentencepiece"
     os.makedirs(SAVE_DIR, exist_ok=True)
 
     # ====== Device ======
@@ -26,7 +27,12 @@ def train():
     # ====== Dataset & DataLoader ======
     args = ModelArgs()
     args.device = device
-    dataset = Shakes_Pear_Dataset(args.max_Seq_len)
+
+    # Tokenizer
+    tokenizer=spm.SentencePieceProcessor()
+    tokenizer.load("../tokenizer.model")
+
+    dataset = Shakes_Pear_Dataset(args.max_Seq_len,tokenizer)
     args.vocab_size = dataset.get_vocab_size()
     print(f"Vocab Size: {args.vocab_size}")
     print(f"Dataset Size: {len(dataset)} samples")
@@ -56,19 +62,7 @@ def train():
     # ====== Learning Rate Scheduler (Cosine Annealing) ======
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
 
-    checkpoint_path="../checkpoints/checkpoint_epoch_15.pt"
-    if os.path.exists(checkpoint_path):
-        print(f"Loading checkpoint from {checkpoint_path}")
-        checkpoint = torch.load(checkpoint_path)
-        model.load_state_dict(checkpoint["model_state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-        start_epoch = checkpoint["epoch"]
-        print("-"*20)
-        print(f"CheckPoint Loaded Successfully -> {checkpoint_path}")
-        print("-"*20)
-    else:
-        start_epoch = 0
+    start_epoch = 0
    
 
 

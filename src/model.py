@@ -187,18 +187,28 @@ class ProcessWithLearnedMask(nn.Module):
         super().__init__()
 
         self.predictmask=PredictMask(args)
-        self.attention=Attention(args)
-        self.feed_forward=FeedForward(args)
-        self.norm_1=RMSNorm(args)
-        self.norm_2=RMSNorm(args)
+        self.attention_1=Attention(args)
+        self.feed_forward_1=FeedForward(args)
+        self.attention_2=Attention(args)
+        self.feed_forward_2=FeedForward(args)
+        self.norm_1_1=RMSNorm(args)
+        self.norm_1_2=RMSNorm(args)
+        self.norm_2_1=RMSNorm(args)
+        self.norm_2_2=RMSNorm(args)
     
     def forward(self,x:torch.Tensor , freq_complex: torch.Tensor):
         # x : (Batch , Seq_Len , d_model)
         batch , seq_len , d_model = x.shape
         soft_mask=self.predictmask(x,freq_complex)
+
+        # Use Same Mask for two Blocks (Saves Parameters)
+
         causal_mask = torch.tril(torch.ones(seq_len, seq_len, device=x.device)).unsqueeze(0).unsqueeze(0)
-        x = x + self.attention(self.norm_1(x),freq_complex,hard_mask=causal_mask,soft_mask=soft_mask)
-        x = x + self.feed_forward(self.norm_2(x))
+        x = x + self.attention_1(self.norm_1_1(x),freq_complex,hard_mask=causal_mask,soft_mask=soft_mask)
+        x = x + self.feed_forward_1(self.norm_1_2(x))
+
+        x = x + self.attention_2(self.norm_2_1(x),freq_complex,hard_mask=causal_mask,soft_mask=soft_mask)
+        x = x + self.feed_forward_2(self.norm_2_2(x))
 
         return x
 

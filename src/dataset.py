@@ -1,11 +1,11 @@
 import torch
 from torch.utils.data import Dataset
-import tiktoken
+
 
 class Shakes_Pear_Dataset(Dataset):
     
-    def __init__(self, seq_len):
-        self.enc = tiktoken.get_encoding("gpt2")  # BPE tokenizer (~50K vocab)
+    def __init__(self, seq_len: int,tokenizer):
+        self.enc = tokenizer
 
         paths = [
             "../Datasets/Shakespear_dataset/Shakes_Pear.txt"
@@ -20,7 +20,7 @@ class Shakes_Pear_Dataset(Dataset):
         # Tokenize with BPE
         self.tokens = self.enc.encode(raw_text)
 
-        self.vocab_size = self.enc.n_vocab  # 50257 for GPT-2 encoding
+        self.vocab_size = self.enc.vocab_size()  # SentencePiece vocab size
         self.seq_len = seq_len
         self.num_samples = len(self.tokens) - seq_len
 
