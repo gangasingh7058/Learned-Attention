@@ -24,7 +24,7 @@ def inference():
     model.eval()
 
     # Encode prompt
-    prompt = "To be or not to be, that is"
+    prompt = "First Citizen : First, you know Caius Marcius is chief enemy to the people."
     tokens = tokenizer.encode(prompt)
     tokens = torch.tensor(tokens, dtype=torch.long).unsqueeze(0).to(device)
     eos_token = tokenizer.eos_id()

@@ -12,3 +12,15 @@ Datasets/
 
 # Jupyter
 .ipynb_checkpoints/
+
+.walkthrough.md
+
+tokenizer.model
+tokenizer.vocab
+
+checkpoints_sentencepiece/
+
+walkthrough.md 
+
+src/temp.py
+src/test_model.py

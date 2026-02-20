@@ -14,8 +14,8 @@ def train():
     torch.manual_seed(42)
 
     # ====== Hyperparameters ======
-    BATCH_SIZE = 24
-    EPOCHS = 20
+    BATCH_SIZE = 64
+    EPOCHS = 12
     LR = 3e-4
     SAVE_DIR = "../checkpoints_sentencepiece"
     os.makedirs(SAVE_DIR, exist_ok=True)
@@ -32,21 +32,21 @@ def train():
     tokenizer=spm.SentencePieceProcessor()
     tokenizer.load("../tokenizer.model")
 
-    dataset = Shakes_Pear_Dataset(args.max_Seq_len,tokenizer)
-    args.vocab_size = dataset.get_vocab_size()
+    train_dataset = Shakes_Pear_Dataset(args.max_Seq_len,tokenizer,"train")
+    args.vocab_size = train_dataset.get_vocab_size()
     print(f"Vocab Size: {args.vocab_size}")
-    print(f"Dataset Size: {len(dataset)} samples")
+    print(f"Train Dataset Size: {len(train_dataset)} samples")
     
     print(args)
 
-    dataloader = DataLoader(
-        dataset,
+    train_dataloader = DataLoader(
+        train_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
         num_workers=0,
         pin_memory=True if device == 'cuda' else False,
     )
-
+    
     # ====== Model ======
     model = Transformer(args).to(device)
     total_params = sum(p.numel() for p in model.parameters())
@@ -61,9 +61,19 @@ def train():
 
     # ====== Learning Rate Scheduler (Cosine Annealing) ======
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
-
     start_epoch = 0
-   
+    # checkpoint_path = "../checkpoints_sentencepiece/checkpoint_epoch_9.pt"
+
+    # checkpoint = torch.load(checkpoint_path, map_location=device)
+
+    # model.load_state_dict(checkpoint["model_state_dict"])
+    # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    # scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+
+    # start_epoch = checkpoint["epoch"]
+
+    # print(f"Model resumed successfully from epoch {start_epoch}")
+
 
 
     # ====== Training Loop ======
@@ -74,7 +84,7 @@ def train():
         num_batches = 0
         batch_losses = []  # Collect all per-batch losses for histogram
 
-        progress_bar = tqdm(dataloader, desc=f"Epoch {epoch+1}/{EPOCHS}", leave=True)
+        progress_bar = tqdm(train_dataloader, desc=f"Epoch {epoch+1}/{EPOCHS}", leave=True)
 
         for batch in progress_bar:
             src = batch["src"].to(device)       # (B, Seq_Len)
