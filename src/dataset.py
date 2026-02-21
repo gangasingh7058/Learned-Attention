@@ -1,10 +1,9 @@
 import torch
 from torch.utils.data import Dataset
-from nltk import train_test_split
 
 class Shakes_Pear_Dataset(Dataset):
     
-    def __init__(self, seq_len: int,tokenizer,mode: str="train"):
+    def __init__(self, seq_len: int, tokenizer, mode: str = "train", test_fraction: float = 0.1):
         self.enc = tokenizer
         self.mode = mode    
         
@@ -19,9 +18,13 @@ class Shakes_Pear_Dataset(Dataset):
                 raw_text += f.read() + "\n"
 
         # Tokenize with BPE
-        self.tokens = self.enc.encode(raw_text)
+        all_tokens = self.enc.encode(raw_text)
 
-        self.train_tokens,self.test_tokens = train_test_split(self.tokens,test_size=0.1,random_state=42)
+        # Contiguous split: first 90% train, last 10% test
+        # This preserves sequential order (critical for language modeling)
+        split_idx = int(len(all_tokens) * (1 - test_fraction))
+        self.train_tokens = all_tokens[:split_idx]
+        self.test_tokens  = all_tokens[split_idx:]
 
         self.vocab_size = self.enc.vocab_size()  # SentencePiece vocab size
         self.seq_len = seq_len
@@ -56,4 +59,5 @@ class Shakes_Pear_Dataset(Dataset):
             "target": target,
             "mask": self.get_mask(),
         }
+
 

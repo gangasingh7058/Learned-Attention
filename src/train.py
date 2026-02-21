@@ -14,10 +14,10 @@ def train():
     torch.manual_seed(42)
 
     # ====== Hyperparameters ======
-    BATCH_SIZE = 64
-    EPOCHS = 12
+    BATCH_SIZE = 72
+    EPOCHS = 15
     LR = 3e-4
-    SAVE_DIR = "../checkpoints_sentencepiece"
+    SAVE_DIR = "../checkpoints_sentencepiece_2"
     os.makedirs(SAVE_DIR, exist_ok=True)
 
     # ====== Device ======

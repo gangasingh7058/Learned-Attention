@@ -19,8 +19,10 @@ tokenizer.model
 tokenizer.vocab
 
 checkpoints_sentencepiece/
+checkpoints_sentencepiece_2/
 
 walkthrough.md 
 
 src/temp.py
 src/test_model.py
+
