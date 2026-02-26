@@ -5,7 +5,8 @@ import torch
 @dataclass
 class ModelArgs:
     d_model: int = 512
-    vocab_size: int = -1 # Set While Training
+    src_vocab_size: int = -1 # Set while training (source language)
+    tgt_vocab_size: int = -1 # Set while training (target language)
     max_Seq_len: int = 128
     n_layers: int = 4
     n_heads: int = 4

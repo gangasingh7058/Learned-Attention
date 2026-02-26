@@ -1,77 +1,78 @@
 import torch
 from torch.utils.data import Dataset
-import requests
-import zipfile
-import io
-from collections import Counter
 
 
-class WikiPedia_Dataset(Dataset):
+class BilingualDataset(Dataset):
+    """
+    Translation dataset for a decoder-only Transformer with separate
+    source and target vocabularies.
 
-    def __init__(self, seq_len: int, mode: str = "train", test_fraction: float = 0.1):
-        self.mode = mode
+    Input (src):  source language tokens padded to seq_len
+    Label (tgt):  target language tokens padded to seq_len
+
+    The model receives src token IDs (embedded via src_vocab),
+    and predicts tgt token IDs (projected via tgt_vocab).
+    """
+
+    def __init__(self, ds, tokenizer_src, tokenizer_tgt, src_lang, tgt_lang, seq_len):
+        super().__init__()
+        self.ds = ds
+        self.tokenizer_src = tokenizer_src
+        self.tokenizer_tgt = tokenizer_tgt
+        self.src_lang = src_lang
+        self.tgt_lang = tgt_lang
         self.seq_len = seq_len
 
-        # Download text8 dataset
-        url = 'http://mattmahoney.net/dc/text8.zip'
-        print(f"Loading Data from => {url}")
-        r = requests.get(url)
-        f = zipfile.ZipFile(io.BytesIO(r.content))
-        text = f.read('text8').decode('utf-8')
+        # Source special token IDs
+        self.src_pad_id = tokenizer_src.token_to_id("[PAD]")
 
-        tokens = text.split()
-
-        # Build vocabulary with UNK
-        counter = Counter(tokens)
-        min_freqs = 10
-
-        vocab = {"<UNK>": 0}
-        for word, freq in counter.items():
-            if freq >= min_freqs:
-                vocab[word] = len(vocab)
-
-        self.vocab = vocab
-        self.vocab_size = len(vocab)
-
-        # Convert tokens to ids
-        all_tokens = [vocab.get(token, 0) for token in tokens]
-
-        # Sequential split (important for LM)
-        split_idx = int(len(all_tokens) * (1 - test_fraction))
-        self.train_tokens = all_tokens[:2_000_000]
-        self.test_tokens = all_tokens[split_idx:]
-
-        # Prevent negative length bug
-        self.num_samples_train = max(0, len(self.train_tokens) - seq_len)
-        self.num_samples_test = max(0, len(self.test_tokens) - seq_len)
-
-        # Create causal mask once
-        self.mask = torch.tril(torch.ones(seq_len, seq_len)).unsqueeze(0) == 1
-
-    def get_vocab_size(self):
-        return self.vocab_size
-
-    def get_mask(self):
-        return self.mask
+        # Target special token IDs
+        self.tgt_sos_id = tokenizer_tgt.token_to_id("[SOS]")
+        self.tgt_eos_id = tokenizer_tgt.token_to_id("[EOS]")
+        self.tgt_pad_id = tokenizer_tgt.token_to_id("[PAD]")
 
     def __len__(self):
-        if self.mode == "train":
-            return self.num_samples_train
-        else:
-            return self.num_samples_test
+        return len(self.ds)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, index):
+        pair = self.ds[index]
+        src_text = pair['translation'][self.src_lang]
+        tgt_text = pair['translation'][self.tgt_lang]
 
-        if self.mode == "train":
-            chunk = self.train_tokens[idx: idx + self.seq_len + 1]
-        else:
-            chunk = self.test_tokens[idx: idx + self.seq_len + 1]
+        # Tokenize
+        src_tokens = self.tokenizer_src.encode(src_text).ids
+        tgt_tokens = self.tokenizer_tgt.encode(tgt_text).ids
 
-        src = torch.tensor(chunk[:-1], dtype=torch.long)
-        target = torch.tensor(chunk[1:], dtype=torch.long)
+        # Truncate to fit within seq_len
+        # src: tokens + padding → seq_len
+        # tgt input:  [SOS] + tokens → seq_len  (teacher forcing input)
+        # tgt label:  tokens + [EOS] → seq_len  (what model should predict)
+        src_tokens = src_tokens[:self.seq_len]
+        tgt_tokens = tgt_tokens[:self.seq_len - 1]  # leave room for SOS/EOS
+
+        src_pad_len = self.seq_len - len(src_tokens)
+        tgt_pad_len = self.seq_len - len(tgt_tokens) - 1  # -1 for SOS or EOS
+
+        # Source: src_tokens [PAD]...
+        src = torch.cat([
+            torch.tensor(src_tokens, dtype=torch.int64),
+            torch.tensor([self.src_pad_id] * src_pad_len, dtype=torch.int64),
+        ])
+
+        # Target label: tgt_tokens [EOS] [PAD]...
+        # This is what the model should predict at each position
+        tgt = torch.cat([
+            torch.tensor(tgt_tokens, dtype=torch.int64),
+            torch.tensor([self.tgt_eos_id], dtype=torch.int64),
+            torch.tensor([self.tgt_pad_id] * tgt_pad_len, dtype=torch.int64),
+        ])
+
+        assert src.size(0) == self.seq_len
+        assert tgt.size(0) == self.seq_len
 
         return {
-            "src": src,
-            "target": target,
-            "mask": self.mask,
+            "src": src,        # (Seq_Len) — source language token IDs
+            "tgt": tgt,        # (Seq_Len) — target language token IDs (label)
+            "src_text": src_text,
+            "tgt_text": tgt_text,
         }

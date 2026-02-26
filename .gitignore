@@ -15,12 +15,10 @@ Datasets/
 
 .walkthrough.md
 
-tokenizer.model
-tokenizer.vocab
-
 checkpoints_sentencepiece/
 checkpoints_sentencepiece_2/
 checkpoints_sentencepiece_3/
+tokenizers/
 
 walkthrough.md 
 

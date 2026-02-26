@@ -227,13 +227,11 @@ class Transformer(nn.Module):
                 ProcessWithLearnedMask(args)
             )
         
-        self.embedding = nn.Embedding(args.vocab_size,args.d_model)
+        self.embedding = nn.Embedding(args.src_vocab_size, args.d_model)
 
         self.out_norm=RMSNorm(args)
-        self.out_Proj=nn.Linear(args.d_model,args.vocab_size,bias=False)
+        self.out_Proj=nn.Linear(args.d_model, args.tgt_vocab_size, bias=False)
 
-        # Weight tying: share embedding weights with output projection (saves ~12.9M params)
-        self.out_Proj.weight = self.embedding.weight
         self.register_buffer(
             "freq_complex",
             precompute_theta_pos_embedding(args.d_model // args.n_heads,args.max_Seq_len,device='cpu')
