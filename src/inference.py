@@ -20,7 +20,7 @@ def inference():
 
     # Load model
     model = Transformer(args).to(device)
-    model.load_state_dict(torch.load("../checkpoints_sentencepiece/model_final.pt", map_location=device))
+    model.load_state_dict(torch.load("../checkpoints_3/model_final.pt", map_location=device))
     model.eval()
 
     # Encode prompt

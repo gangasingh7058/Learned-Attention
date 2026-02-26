@@ -20,6 +20,7 @@ tokenizer.vocab
 
 checkpoints_sentencepiece/
 checkpoints_sentencepiece_2/
+checkpoints_sentencepiece_3/
 
 walkthrough.md 
 

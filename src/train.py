@@ -3,23 +3,23 @@ from torch import nn
 from torch.nn import functional as F
 from model_args import ModelArgs
 from model import Transformer
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
-from dataset import Shakes_Pear_Dataset
-import sentencepiece as spm
+from dataset import WikiPedia_Dataset
 
 def train():
     torch.manual_seed(42)
 
     # ====== Hyperparameters ======
-    BATCH_SIZE = 72
-    EPOCHS = 15
+    BATCH_SIZE = 24
+    EPOCHS = 10
     LR = 3e-4
-    SAVE_DIR = "../checkpoints_sentencepiece_2"
+    SAVE_DIR = "../checkpoints_3"
     os.makedirs(SAVE_DIR, exist_ok=True)
 
+    print(f"Batch Size => {BATCH_SIZE}")
     # ====== Device ======
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
@@ -28,11 +28,7 @@ def train():
     args = ModelArgs()
     args.device = device
 
-    # Tokenizer
-    tokenizer=spm.SentencePieceProcessor()
-    tokenizer.load("../tokenizer.model")
-
-    train_dataset = Shakes_Pear_Dataset(args.max_Seq_len,tokenizer,"train")
+    train_dataset = WikiPedia_Dataset(args.max_Seq_len,"train")
     args.vocab_size = train_dataset.get_vocab_size()
     print(f"Vocab Size: {args.vocab_size}")
     print(f"Train Dataset Size: {len(train_dataset)} samples")
@@ -62,17 +58,17 @@ def train():
     # ====== Learning Rate Scheduler (Cosine Annealing) ======
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
     start_epoch = 0
-    # checkpoint_path = "../checkpoints_sentencepiece/checkpoint_epoch_9.pt"
+    checkpoint_path = "../checkpoints_3/checkpoint_epoch_6.pt"
 
-    # checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device)
 
-    # model.load_state_dict(checkpoint["model_state_dict"])
-    # optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-    # scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
-    # start_epoch = checkpoint["epoch"]
+    start_epoch = checkpoint["epoch"]
 
-    # print(f"Model resumed successfully from epoch {start_epoch}")
+    print(f"Model resumed successfully from epoch {start_epoch}")
 
 
 
@@ -124,17 +120,19 @@ def train():
         print(f"\nEpoch {epoch+1}/{EPOCHS} — Avg Loss: {epoch_avg_loss:.4f} — LR: {optimizer.param_groups[0]['lr']:.2e}")
 
         # Save checkpoint every epoch
-        checkpoint = {
-            "epoch": epoch + 1,
-            "model_state_dict": model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-            "scheduler_state_dict": scheduler.state_dict(),
-            "loss": epoch_avg_loss,
-            "args": args,
-        }
-        torch.save(checkpoint, os.path.join(SAVE_DIR, f"checkpoint_epoch_{epoch+1}.pt"))
-        print(f"Checkpoint saved: checkpoint_epoch_{epoch+1}.pt")
-
+        if (epoch+1)%1==0:
+            checkpoint = {
+                "epoch": epoch + 1,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "scheduler_state_dict": scheduler.state_dict(),
+                "loss": epoch_avg_loss,
+                "args": args,
+            }
+            torch.save(checkpoint, os.path.join(SAVE_DIR, f"checkpoint_epoch_{epoch+1}.pt"))
+            print(f"Checkpoint saved: checkpoint_epoch_{epoch+1}.pt")
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
         # Save loss histogram
         plt.figure(figsize=(10, 6))
         plt.hist(batch_losses, bins=50, color='steelblue', edgecolor='black', alpha=0.8)

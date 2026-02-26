@@ -4,7 +4,7 @@ import torch
 
 @dataclass
 class ModelArgs:
-    d_model: int = 256
+    d_model: int = 512
     vocab_size: int = -1 # Set While Training
     max_Seq_len: int = 128
     n_layers: int = 4
