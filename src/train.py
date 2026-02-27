@@ -56,19 +56,24 @@ def train():
     torch.manual_seed(42)
 
     # ====== Hyperparameters ======
-    BATCH_SIZE = 24
+    BATCH_SIZE = 32
     EPOCHS = 10
     LR = 3e-4
     SAVE_DIR = "../checkpoints/"
     TOKENIZER_DIR = "../tokenizers/"
 
+    print(f"BATCH_SIZE: {BATCH_SIZE}")
+    print(f"EPOCHS: {EPOCHS}")
+    print(f"LR: {LR}")
+    print(f"SAVE_DIR: {SAVE_DIR}")
+    print(f"TOKENIZER_DIR: {TOKENIZER_DIR}")
     # Dataset config
     DATASET_NAME = "Helsinki-NLP/opus-100"
     SRC_LANG = "en"
     TGT_LANG = "hi"
 
     # Resume training (set to checkpoint path to resume, or None to train from scratch)
-    RESUME_CHECKPOINT = None  # e.g., "../checkpoints/checkpoint_epoch_5.pt"
+    RESUME_CHECKPOINT = "../checkpoints/checkpoint_epoch_7.pt"  # e.g., "../checkpoints/checkpoint_epoch_5.pt"
 
     os.makedirs(SAVE_DIR, exist_ok=True)
 
